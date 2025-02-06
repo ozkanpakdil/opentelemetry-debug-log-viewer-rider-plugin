@@ -2,6 +2,7 @@ package io.github.ozkanpakdil.opentelemetry.ui.renderers;
 
 import com.intellij.ui.JBColor;
 import com.jetbrains.rd.util.lifetime.Lifetime;
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition;
 import io.github.ozkanpakdil.opentelemetry.Telemetry;
 import io.github.ozkanpakdil.opentelemetry.settings.AppSettingState;
 import kotlin.Unit;
@@ -12,8 +13,8 @@ import java.awt.*;
 public class TelemetryRender extends TelemetryRenderBase {
     private boolean showFilteredIndicator;
 
-    public TelemetryRender(Lifetime lifetime) {
-        AppSettingState.getInstance().showFilteredIndicator.advise(lifetime, v -> {
+    public TelemetryRender() {
+        AppSettingState.getInstance().showFilteredIndicator.advise(new LifetimeDefinition(), v -> {
             showFilteredIndicator = v;
             return Unit.INSTANCE;
         });

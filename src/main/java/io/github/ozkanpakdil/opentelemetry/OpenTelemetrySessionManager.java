@@ -1,7 +1,6 @@
 package io.github.ozkanpakdil.opentelemetry;
 
 import com.intellij.xdebugger.XDebugProcess;
-import com.jetbrains.rider.debugger.DotNetDebugProcess;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,12 +21,12 @@ public class OpenTelemetrySessionManager {
     }
 
     public void startSession(XDebugProcess debugProcess) {
-        if (!(debugProcess instanceof DotNetDebugProcess))
+        if (!(debugProcess instanceof XDebugProcess))
             return;
 
         OpentelemetrySession opentelemetrySession = new OpentelemetrySession(
                 telemetryFactory,
-                (DotNetDebugProcess) debugProcess
+                debugProcess
         );
         opentelemetrySession.startListeningToOutputDebugMessage();
     }

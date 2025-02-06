@@ -29,7 +29,7 @@ import com.intellij.ui.components.fields.ExtendableTextField;
 import com.intellij.ui.table.JBTable;
 import com.intellij.unscramble.AnalyzeStacktraceUtil;
 import com.intellij.util.concurrency.AppExecutorUtil;
-import com.jetbrains.rd.util.lifetime.Lifetime;
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition;
 import io.github.ozkanpakdil.opentelemetry.OpentelemetrySession;
 import io.github.ozkanpakdil.opentelemetry.Telemetry;
 import io.github.ozkanpakdil.opentelemetry.settings.AppSettingState;
@@ -73,7 +73,6 @@ public class OpenTelemetryToolWindow {
     private final TelemetryRender telemetryRender;
     @NotNull
     private final OpentelemetrySession opentelemetrySession;
-    private final Lifetime lifetime;
 
     @NotNull
     private Editor editor;
@@ -89,11 +88,9 @@ public class OpenTelemetryToolWindow {
 
     public OpenTelemetryToolWindow(
             @NotNull OpentelemetrySession opentelemetrySession,
-            @NotNull Project project,
-            Lifetime lifetime) {
+            @NotNull Project project) {
         this.project = project;
         this.opentelemetrySession = opentelemetrySession;
-        this.lifetime = lifetime;
 
         splitPane.setDividerLocation(0.5);
         splitPane.setResizeWeight(0.5);
@@ -108,7 +105,7 @@ public class OpenTelemetryToolWindow {
             throw new RuntimeException(e);
         }
 
-        this.telemetryRender = new TelemetryRender(lifetime);
+        this.telemetryRender = new TelemetryRender();
         logsTable.setDefaultRenderer(Telemetry.class, telemetryRender);
         logsTable.setDefaultRenderer(Date.class, new TelemetryDateRender());
         logsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -146,7 +143,7 @@ public class OpenTelemetryToolWindow {
         builder = TextConsoleBuilderFactory.getInstance().createBuilder(project);
         builder.filters(AnalyzeStacktraceUtil.EP_NAME.getExtensions(project));
 
-        AppSettingState.getInstance().showFilteredIndicator.advise(lifetime, (v) -> {
+        AppSettingState.getInstance().showFilteredIndicator.advise(new LifetimeDefinition(), (v) -> {
             this.logsTable.invalidate();
             this.logsTable.repaint();
             return Unit.INSTANCE;

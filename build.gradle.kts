@@ -1,7 +1,5 @@
-import com.jetbrains.plugin.structure.base.utils.isFile
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.changelog.exceptions.MissingVersionException
-import org.jetbrains.intellij.platform.gradle.Constants
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import kotlin.io.path.absolute
 import kotlin.io.path.isDirectory
@@ -28,23 +26,16 @@ repositories {
 }
 
 val pluginVersion: String by project
-val riderSdkVersion: String by project
+val pluginSdkVersion: String by project
 val untilBuildVersion: String by project
 val buildConfiguration: String by project
 
 version = pluginVersion
 
-val riderSdkPath by lazy {
-    val path = intellijPlatform.platformPath.resolve("lib/DotNetSdkForRdPlugins").absolute()
-    if (!path.isDirectory()) error("$path does not exist or not a directory")
-
-    println("Rider SDK path: $path")
-    return@lazy path
-}
-
 dependencies {
     intellijPlatform {
-        rider(riderSdkVersion)
+//        intellijIdeaCommunity(pluginSdkVersion)
+        intellijIdeaUltimate(pluginSdkVersion)
         jetbrainsRuntime()
         instrumentationTools()
         testFramework(TestFrameworkType.Platform.Bundled)
@@ -58,13 +49,6 @@ kotlin {
     }
 }
 
-sourceSets {
-    main {
-        kotlin.srcDir("src/rider/generated/kotlin")
-        kotlin.srcDir("src/rider/main/kotlin")
-        resources.srcDir("src/rider/main/resources")
-    }
-}
 
 tasks {
     patchPluginXml {
@@ -101,18 +85,6 @@ tasks {
 val riderModel: Configuration by configurations.creating {
     isCanBeConsumed = true
     isCanBeResolved = false
-}
-
-artifacts {
-    add(riderModel.name, provider {
-        intellijPlatform.platformPath.resolve("lib/rd/rider-model.jar").also {
-            check(it.isFile) {
-                "rider-model.jar is not found at $riderModel"
-            }
-        }
-    }) {
-        builtBy(Constants.Tasks.INITIALIZE_INTELLIJ_PLATFORM_PLUGIN)
-    }
 }
 
 fun File.writeTextIfChanged(content: String) {

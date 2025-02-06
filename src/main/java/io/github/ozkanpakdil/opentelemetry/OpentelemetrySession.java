@@ -1,14 +1,16 @@
 package io.github.ozkanpakdil.opentelemetry;
 
+import com.intellij.execution.process.ProcessHandler;
+import com.intellij.execution.ui.ConsoleView;
+import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.content.Content;
-import com.jetbrains.rd.util.lifetime.Lifetime;
-import com.jetbrains.rider.debugger.DotNetDebugProcess;
+import com.intellij.xdebugger.XDebugProcess;
+import com.intellij.xdebugger.XDebugSession;
 import io.github.ozkanpakdil.opentelemetry.settings.AppSettingState;
 import io.github.ozkanpakdil.opentelemetry.settings.FilterTelemetryMode;
 import io.github.ozkanpakdil.opentelemetry.settings.ProjectSettingsState;
 import io.github.ozkanpakdil.opentelemetry.ui.OpenTelemetryToolWindow;
-import kotlin.Unit;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,14 +28,11 @@ public class OpentelemetrySession {
     private static final Icon ICON = IconLoader.getIcon("/icons/pluginIcon.svg", OpentelemetrySession.class);
     @NotNull
     private final TelemetryFactory telemetryFactory;
-    @NotNull
-    private final DotNetDebugProcess dotNetDebugProcess;
+    private final XDebugProcess xDebugProcess;
     @NotNull
     private final List<Telemetry> telemetries = new ArrayList<>();
     @NotNull
     private final List<Telemetry> filteredTelemetries = new ArrayList<>();
-    @NotNull
-    private final Lifetime lifetime;
     @NotNull
     private String filter = "";
     private String filterLowerCase = "";
@@ -41,43 +40,37 @@ public class OpentelemetrySession {
     private OpenTelemetryToolWindow openTelemetryToolWindow;
     private boolean firstMessage = true;
     private final ProjectSettingsState projectSettingsState;
+    private final XDebugSession debugSession;
 
     public OpentelemetrySession(
             @NotNull TelemetryFactory telemetryFactory,
-            @NotNull DotNetDebugProcess dotNetDebugProcess
+            XDebugProcess debugProcess
     ) {
         this.telemetryFactory = telemetryFactory;
-        this.dotNetDebugProcess = dotNetDebugProcess;
-        this.lifetime = dotNetDebugProcess.getSessionLifetime();
-
-        projectSettingsState = ProjectSettingsState.getInstance(dotNetDebugProcess.getProject());
-
-        AppSettingState.getInstance().filterTelemetryMode.advise(lifetime, (v) -> {
-            this.updateFilteredTelemetries();
-            return Unit.INSTANCE;
-        });
-        AppSettingState.getInstance().caseInsensitiveSearch.advise(lifetime, (v) -> {
-            this.updateFilteredTelemetries();
-            return Unit.INSTANCE;
-        });
-        projectSettingsState.filteredLogs.advise(lifetime, (v) -> {
-            this.updateFilteredTelemetries();
-            return Unit.INSTANCE;
-        });
-        projectSettingsState.caseInsensitiveFiltering.advise(lifetime, (v) -> {
-            this.updateFilteredTelemetries();
-            return Unit.INSTANCE;
-        });
+        this.xDebugProcess = debugProcess;
+        this.debugSession = debugProcess.getSession();
+        projectSettingsState = ProjectSettingsState.getInstance(debugSession.getProject());
     }
 
     public void startListeningToOutputDebugMessage() {
-        dotNetDebugProcess.getSessionProxy().getTargetDebug().advise(lifetime, outputMessageWithSubject -> {
-            Telemetry telemetry = telemetryFactory.tryCreateFromDebugOutputLog(outputMessageWithSubject.getOutput());
-            if (telemetry != null) {
-                addTelemetry(telemetry);
+        ConsoleView consoleView = debugSession.getConsoleView();
+
+        if (consoleView != null) {
+            ProcessHandler processHandler = xDebugProcess.getProcessHandler();
+            if (processHandler != null) {
+                consoleView.attachToProcess(processHandler);
+
+                consoleView.addMessageFilter((line, outputType) -> {
+                    if (ConsoleViewContentType.SYSTEM_OUTPUT.equals(outputType)) {
+                        Telemetry telemetry = telemetryFactory.tryCreateFromDebugOutputLog(line);
+                        if (telemetry != null) {
+                            addTelemetry(telemetry);
+                        }
+                    }
+                    return null;
+                });
             }
-            return Unit.INSTANCE;
-        });
+        }
     }
 
     public void updateFilter(@NonNull String filter) {
@@ -95,16 +88,16 @@ public class OpentelemetrySession {
         if (firstMessage) {
             firstMessage = false;
 
-            openTelemetryToolWindow = new OpenTelemetryToolWindow(this, dotNetDebugProcess.getProject(), lifetime);
+            openTelemetryToolWindow = new OpenTelemetryToolWindow(this, xDebugProcess.getSession().getProject());
 
-            Content content = dotNetDebugProcess.getSession().getUI().createContent(
+            Content content = xDebugProcess.getSession().getUI().createContent(
                     "opentelemetry",
                     openTelemetryToolWindow.getContent(),
                     "Opentelemetry",
                     ICON,
                     null
             );
-            dotNetDebugProcess.getSession().getUI().addContent(content);
+            xDebugProcess.getSession().getUI().addContent(content);
         }
 
         int index = -1;
