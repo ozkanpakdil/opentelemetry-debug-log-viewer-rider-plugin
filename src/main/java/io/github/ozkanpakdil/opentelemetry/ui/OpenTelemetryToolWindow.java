@@ -6,8 +6,6 @@ import com.intellij.codeInsight.folding.CodeFoldingManager;
 import com.intellij.execution.filters.TextConsoleBuilder;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.json.JsonFileType;
-import com.intellij.json.JsonLanguage;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
@@ -233,11 +231,11 @@ public class OpenTelemetryToolWindow {
         toolbar.setTargetComponent(mainPanel);
         toolbar.setVisible(false);
 
-        jsonPreviewDocument = new LanguageTextField.SimpleDocumentCreator().createDocument("", JsonLanguage.INSTANCE, project);
+        jsonPreviewDocument = new LanguageTextField.SimpleDocumentCreator().createDocument("", com.intellij.lang.Language.findLanguageByID("json"), project);
         editor = EditorFactory.getInstance().createViewer(jsonPreviewDocument, project, EditorKind.MAIN_EDITOR);
         if (editor instanceof EditorEx) {
             ((EditorEx) editor).setHighlighter(
-                    EditorHighlighterFactory.getInstance().createEditorHighlighter(project, JsonFileType.INSTANCE));
+                    EditorHighlighterFactory.getInstance().createEditorHighlighter(project, "json"));
             ((EditorEx) editor).getFoldingModel().setFoldingEnabled(true);
         }
         editor.getSettings().setIndentGuidesShown(true);

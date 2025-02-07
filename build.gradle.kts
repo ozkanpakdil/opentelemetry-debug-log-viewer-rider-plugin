@@ -46,8 +46,8 @@ dependencies {
     intellijPlatform {
         rider(riderSdkVersion)
         jetbrainsRuntime()
-        instrumentationTools()
-        testFramework(TestFrameworkType.Platform.Bundled)
+//        instrumentationTools()
+//        testFramework(TestFrameworkType.Platform.Bundled)
     }
     testImplementation(libs.openTest4J)
 }
